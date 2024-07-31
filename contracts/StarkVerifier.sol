@@ -70,7 +70,7 @@ contract StarkVerifier {
         return false;
     }
 
-    function verifyCp0(
+    function verify(
         uint256 x, // Punto de evaluación
         uint256 f_x, // Evaluación de f(x)
         bytes32[] memory f_x_path, // Camino de Merkle para f(x)
@@ -79,7 +79,11 @@ contract StarkVerifier {
         uint256 f_g2x, // Evaluación de f(g^2x)
         bytes32[] memory f_g2x_path, // Camino de Merkle para f(g^2x)
         uint256 cp0_x, // Evaluación de cp0(x)
-        bytes32[] memory cp0_x_path // Camino de Merkle para cp0(x)
+        bytes32[] memory cp0_x_path, // Camino de Merkle para cp0(x)
+        uint256 cp0_neg_x, // Evaluación de cp0(-x)
+        bytes32[] memory cp0_neg_x_path, // Camino de Merkle para cp0(-x)
+        uint256 cp1_x2, // Evaluación de cp1(x^2)
+        bytes32[] memory cp1_x2_path // Camino de Merkle para cp1(x^2)
     ) public view returns (bool) {
         if (!isSelectedPoint(x)) {
             return false;
@@ -105,6 +109,21 @@ contract StarkVerifier {
 
         // Verificar que cp0(x) pertenece al árbol de Merkle del root de cp0
         if (!verifyMerklePath(bytes32(cp0_x), cp0_x_path, cpRoots[0])) {
+            return false;
+        }
+
+         // Verificar que cp0(-x) pertenece al árbol de Merkle del root de cp0
+        if (!verifyMerklePath(bytes32(cp0_neg_x), cp0_neg_x_path, cpRoots[0])) {
+            return false;
+        }
+
+        // Verificar que cp1(x^2) pertenece al árbol de Merkle del root de cp1
+        if (!verifyMerklePath(bytes32(cp1_x2), cp1_x2_path, cpRoots[1])) {
+            return false;
+        }
+
+        // Verificar que cp0(x) + cp0(-x) = cp1(x^2)
+        if ((cp0_x + cp0_neg_x) % PRIME != cp1_x2) {
             return false;
         }
 
