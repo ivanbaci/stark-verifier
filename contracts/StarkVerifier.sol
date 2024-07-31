@@ -44,22 +44,13 @@ contract StarkVerifier {
 
     function calculateExtendedDomain() public pure returns (uint256[] memory) {
         uint256[] memory domain = new uint256[](LARGE_DOMAIN_SIZE);
+        uint256 g = GENERATOR;
+        uint256 current = 1;
         for (uint256 i = 0; i < LARGE_DOMAIN_SIZE; i++) {
-            domain[i] = modExp(GENERATOR, i, PRIME);
+            domain[i] = current;
+            current = (current * g) % PRIME;
         }
         return domain;
-    }
-
-    function modExp(uint256 base, uint256 exp, uint256 mod) internal pure returns (uint256) {
-        uint256 result = 1;
-        while (exp > 0) {
-            if (exp % 2 == 1) {
-                result = (result * base) % mod;
-            }
-            base = (base * base) % mod;
-            exp = exp / 2;
-        }
-        return result;
     }
 
     function verifyMerklePath(bytes32 leaf, bytes32[] memory path, bytes32 root) public pure returns (bool) {
