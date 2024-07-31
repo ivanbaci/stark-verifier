@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.24;
 
 contract StarkVerifier {
     uint256 constant PRIME = 322122547; 
     uint256 constant LARGE_DOMAIN_SIZE = 8192;
     uint256 constant GENERATOR = 3;
     uint256 constant NUM_POINTS = 4;
+
+    // Coeficientes de la combinación lineal para cp0(x) (elegidos arbitrariamente, se podrían elegir otros o recibir del prover)
+    uint256 constant ALPHA_0 = 1;
+    uint256 constant ALPHA_1 = 2;
+    uint256 constant ALPHA_2 = 3;
 
     bytes32 public merkleRoot;
     bytes32[] public cpRoots;
@@ -55,5 +60,63 @@ contract StarkVerifier {
             exp = exp / 2;
         }
         return result;
+    }
+
+    function verifyMerklePath(bytes32 leaf, bytes32[] memory path, bytes32 root) public pure returns (bool) {
+        bytes32 hashVal = leaf;
+        for (uint256 i = 0; i < path.length; i++) {
+            hashVal = hash(abi.encodePacked(hashVal, path[i]));
+        }
+        return hashVal == root;
+    }
+
+    function isSelectedPoint(uint256 x) public view returns (bool) {
+        for (uint256 i = 0; i < selectedPoints.length; i++) {
+            if (selectedPoints[i] == x) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function verifyCp0(
+        uint256 x, // Punto de evaluación
+        uint256 f_x, // Evaluación de f(x)
+        bytes32[] memory f_x_path, // Camino de Merkle para f(x)
+        uint256 f_gx, // Evaluación de f(gx)
+        bytes32[] memory f_gx_path, // Camino de Merkle para f(gx)
+        uint256 f_g2x, // Evaluación de f(g^2x)
+        bytes32[] memory f_g2x_path, // Camino de Merkle para f(g^2x)
+        uint256 cp0_x, // Evaluación de cp0(x)
+        bytes32[] memory cp0_x_path // Camino de Merkle para cp0(x)
+    ) public view returns (bool) {
+        if (!isSelectedPoint(x)) {
+            return false;
+        }
+
+        if (!verifyMerklePath(bytes32(f_x), f_x_path, merkleRoot)) {
+            return false;
+        }
+        if (!verifyMerklePath(bytes32(f_gx), f_gx_path, merkleRoot)) {
+            return false;
+        }
+        if (!verifyMerklePath(bytes32(f_g2x), f_g2x_path, merkleRoot)) {
+            return false;
+        }
+
+        // Calcular cp0(x) como una combinación lineal de f(x), f(gx) y f(g^2x)
+        uint256 computed_cp0_x = (ALPHA_0 * f_x + ALPHA_1 * f_gx + ALPHA_2 * f_g2x) % PRIME;
+
+        // Verificar que el cp0(x) calculado corresponde al cp0(x) proporcionado por el prover
+        if (computed_cp0_x != cp0_x) {
+            return false;
+        }
+
+        // Verificar que cp0(x) pertenece al árbol de Merkle del root de cp0
+        if (!verifyMerklePath(bytes32(cp0_x), cp0_x_path, cpRoots[0])) {
+            return false;
+        }
+
+        return true;
     }
 }
