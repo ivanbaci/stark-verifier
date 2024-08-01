@@ -33,11 +33,11 @@ contract StarkVerifier {
         return selectedPoints;
     }
 
-    function hash(bytes memory input) public pure returns (bytes32) {
+    function hash(bytes memory input) internal pure returns (bytes32) {
         return keccak256(input);
     }
 
-    function calculateExtendedDomain() public pure returns (uint256[] memory) {
+    function calculateExtendedDomain() internal pure returns (uint256[] memory) {
         uint256[] memory domain = new uint256[](LARGE_DOMAIN_SIZE);
         uint256 g = GENERATOR;
         uint256 current = 1;
@@ -48,7 +48,7 @@ contract StarkVerifier {
         return domain;
     }
 
-    function verifyMerklePath(bytes32 leaf, bytes32[] memory path, bytes32 root) public pure returns (bool) {
+    function verifyMerklePath(bytes32 leaf, bytes32[] memory path, bytes32 root) internal pure returns (bool) {
         bytes32 hashVal = leaf;
         for (uint256 i = 0; i < path.length; i++) {
             hashVal = hash(abi.encodePacked(hashVal, path[i]));
@@ -56,7 +56,7 @@ contract StarkVerifier {
         return hashVal == root;
     }
 
-    function isSelectedPoint(uint256 x) public view returns (bool) {
+    function isSelectedPoint(uint256 x) internal view returns (bool) {
         for (uint256 i = 0; i < selectedPoints.length; i++) {
             if (selectedPoints[i] == x) {
                 return true;
@@ -78,7 +78,7 @@ contract StarkVerifier {
         bytes32[][] memory cp_paths, // Caminos de Merkle para cada cp eval
         bytes32[][] memory cp_neg_paths, // Caminos de Merkle para cada cp neg eval
         uint256[] memory alphas // Coeficientes de la combinación lineal para cp0(x)
-    ) public view returns (bool) {
+    ) internal view returns (bool) {
         require(cp_evals.length == 11, "Debe proporcionar 11 evaluaciones de cp(x)");
         require(cp_neg_evals.length == 11, "Debe proporcionar 11 evaluaciones de cp(-x)");
         require(cp_paths.length == 11, "Debe proporcionar 11 caminos de Merkle para cp(x)");
