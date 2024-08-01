@@ -1,13 +1,31 @@
-# Sample Hardhat Project
+# Stark Verifier Contract
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+Dentro del contrato StarkVerifier.sol hay tres funciones públicas para que use un prover:
 
-Try running some of the following tasks:
+- **setMerkleRoot**: trace root commitment.
+- **setCpRoots**: CPs roots commitments.
+- **verify**: para que el prover mande los datos para que el verifier valide (decommitment)
+
+## Deployment
+
+Para desplegar el contrato de manera local
+
+```
+npx hardhat node
+```
+
+```
+npx hardhat run --network localhost scripts/deploy.js
+```
+
+También se puede correr el script `interactions.js` que deploya el contrato e interactúa con las funciones del mismo.
+
+```
+npx hardhat run --network localhost scripts/interact.js
+```
+
+## Testing
 
 ```shell
-npx hardhat help
 npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
 ```
