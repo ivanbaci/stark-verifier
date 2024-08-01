@@ -65,7 +65,7 @@ contract StarkVerifier {
         return false;
     }
 
-    function verify(
+    function verifyPoint(
         uint256 x, // Punto de evaluación
         uint256 f_x, // Evaluación de f(x)
         bytes32[] memory f_x_path, // Camino de Merkle para f(x)
@@ -85,8 +85,8 @@ contract StarkVerifier {
         require(cp_neg_paths.length == 11, "Debe proporcionar 11 caminos de Merkle para cp(-x)");
         require(alphas.length == 3, "Debe proporcionar 3 coeficientes alfa");
 
-        // Verificar que x y -x están dentro de los puntos seleccionados
-        if (!isSelectedPoint(x) || !isSelectedPoint(PRIME - x)) {
+        // Verificar que x está dentro de los puntos seleccionados
+        if (!isSelectedPoint(x)) {
             return false;
         }
 
@@ -144,7 +144,7 @@ contract StarkVerifier {
         return true;
     }
 
-    function verifyMultiple(
+    function verify(
         uint256[] memory x_vals, // Puntos de evaluación
         uint256[] memory f_x_vals, // Evaluaciones de f(x) para cada punto
         bytes32[][] memory f_x_paths, // Caminos de Merkle para f(x) para cada punto
@@ -172,7 +172,7 @@ contract StarkVerifier {
         require(alphas.length == 3, "There must be 3 alpha coefficients");
 
         for (uint256 i = 0; i < x_vals.length; i++) {
-            if (!verify(
+            if (!verifyPoint(
                 x_vals[i],
                 f_x_vals[i],
                 f_x_paths[i],
