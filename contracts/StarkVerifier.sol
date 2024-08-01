@@ -143,4 +143,53 @@ contract StarkVerifier {
 
         return true;
     }
+
+    function verifyMultiple(
+        uint256[] memory x_vals, // Puntos de evaluación
+        uint256[] memory f_x_vals, // Evaluaciones de f(x) para cada punto
+        bytes32[][] memory f_x_paths, // Caminos de Merkle para f(x) para cada punto
+        uint256[] memory f_gx_vals, // Evaluaciones de f(gx) para cada punto
+        bytes32[][] memory f_gx_paths, // Caminos de Merkle para f(gx) para cada punto
+        uint256[] memory f_g2x_vals, // Evaluaciones de f(g^2x) para cada punto
+        bytes32[][] memory f_g2x_paths, // Caminos de Merkle para f(g^2x) para cada punto
+        uint256[][] memory cp_evals_arr, // Evaluaciones de cp0(x), cp1(x^2), ..., cp10(x^1024) para cada punto
+        uint256[][] memory cp_neg_evals_arr, // Evaluaciones de cp0(-x), cp1(-x^2), ..., cp10(-x^1024) para cada punto
+        bytes32[][][] memory cp_paths_arr, // Caminos de Merkle para cada cp eval para cada punto
+        bytes32[][][] memory cp_neg_paths_arr, // Caminos de Merkle para cada cp neg eval para cada punto
+        uint256[] memory alphas // Coeficientes de la combinación lineal para cp0(x)
+    ) public view returns (bool) {
+        require(x_vals.length == NUM_POINTS, "The number of evaluation points must equal NUM_POINTS");
+        require(x_vals.length == f_x_vals.length, "Mismatch between x_vals and f_x_vals lengths");
+        require(x_vals.length == f_x_paths.length, "Mismatch between x_vals and f_x_paths lengths");
+        require(x_vals.length == f_gx_vals.length, "Mismatch between x_vals and f_gx_vals lengths");
+        require(x_vals.length == f_gx_paths.length, "Mismatch between x_vals and f_gx_paths lengths");
+        require(x_vals.length == f_g2x_vals.length, "Mismatch between x_vals and f_g2x_vals lengths");
+        require(x_vals.length == f_g2x_paths.length, "Mismatch between x_vals and f_g2x_paths lengths");
+        require(x_vals.length == cp_evals_arr.length, "Mismatch between x_vals and cp_evals_arr lengths");
+        require(x_vals.length == cp_neg_evals_arr.length, "Mismatch between x_vals and cp_neg_evals_arr lengths");
+        require(x_vals.length == cp_paths_arr.length, "Mismatch between x_vals and cp_paths_arr lengths");
+        require(x_vals.length == cp_neg_paths_arr.length, "Mismatch between x_vals and cp_neg_paths_arr lengths");
+        require(alphas.length == 3, "There must be 3 alpha coefficients");
+
+        for (uint256 i = 0; i < x_vals.length; i++) {
+            if (!verify(
+                x_vals[i],
+                f_x_vals[i],
+                f_x_paths[i],
+                f_gx_vals[i],
+                f_gx_paths[i],
+                f_g2x_vals[i],
+                f_g2x_paths[i],
+                cp_evals_arr[i],
+                cp_neg_evals_arr[i],
+                cp_paths_arr[i],
+                cp_neg_paths_arr[i],
+                alphas
+            )) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
