@@ -78,17 +78,22 @@ contract StarkVerifier {
         bytes32[] memory f_gx_path, // Camino de Merkle para f(gx)
         uint256 f_g2x, // Evaluación de f(g^2x)
         bytes32[] memory f_g2x_path, // Camino de Merkle para f(g^2x)
-        uint256 cp0_x, // Evaluación de cp0(x)
-        bytes32[] memory cp0_x_path, // Camino de Merkle para cp0(x)
-        uint256 cp0_neg_x, // Evaluación de cp0(-x)
-        bytes32[] memory cp0_neg_x_path, // Camino de Merkle para cp0(-x)
-        uint256 cp1_x2, // Evaluación de cp1(x^2)
-        bytes32[] memory cp1_x2_path // Camino de Merkle para cp1(x^2)
+        uint256[] memory cp_evals, // Evaluaciones de cp0(x), cp1(x^2), ..., cp10(x^1024)
+        uint256[] memory cp_neg_evals, // Evaluaciones de cp0(-x), cp1(-x^2), ..., cp10(-x^1024)
+        bytes32[][] memory cp_paths, // Caminos de Merkle para cada cp eval
+        bytes32[][] memory cp_neg_paths // Caminos de Merkle para cada cp neg eval
     ) public view returns (bool) {
-        if (!isSelectedPoint(x)) {
+        require(cp_evals.length == 11, "Debe proporcionar 11 evaluaciones de cp(x)");
+        require(cp_neg_evals.length == 11, "Debe proporcionar 11 evaluaciones de cp(-x)");
+        require(cp_paths.length == 11, "Debe proporcionar 11 caminos de Merkle para cp(x)");
+        require(cp_neg_paths.length == 11, "Debe proporcionar 11 caminos de Merkle para cp(-x)");
+
+        // Verificar que x y -x están dentro de los puntos seleccionados
+        if (!isSelectedPoint(x) || !isSelectedPoint(PRIME - x)) {
             return false;
         }
 
+        // Verificar las evaluaciones de f(x), f(gx) y f(g^2x) en el árbol de Merkle
         if (!verifyMerklePath(bytes32(f_x), f_x_path, merkleRoot)) {
             return false;
         }
@@ -103,28 +108,40 @@ contract StarkVerifier {
         uint256 computed_cp0_x = (ALPHA_0 * f_x + ALPHA_1 * f_gx + ALPHA_2 * f_g2x) % PRIME;
 
         // Verificar que el cp0(x) calculado corresponde al cp0(x) proporcionado por el prover
-        if (computed_cp0_x != cp0_x) {
+        if (computed_cp0_x != cp_evals[0]) {
             return false;
         }
 
         // Verificar que cp0(x) pertenece al árbol de Merkle del root de cp0
-        if (!verifyMerklePath(bytes32(cp0_x), cp0_x_path, cpRoots[0])) {
+        if (!verifyMerklePath(bytes32(cp_evals[0]), cp_paths[0], cpRoots[0])) {
             return false;
         }
 
-         // Verificar que cp0(-x) pertenece al árbol de Merkle del root de cp0
-        if (!verifyMerklePath(bytes32(cp0_neg_x), cp0_neg_x_path, cpRoots[0])) {
+        // Verificar que cp0(-x) pertenece al árbol de Merkle del root de cp0
+        if (!verifyMerklePath(bytes32(cp_neg_evals[0]), cp_neg_paths[0], cpRoots[0])) {
             return false;
         }
 
-        // Verificar que cp1(x^2) pertenece al árbol de Merkle del root de cp1
-        if (!verifyMerklePath(bytes32(cp1_x2), cp1_x2_path, cpRoots[1])) {
-            return false;
-        }
+        // Verificar los niveles sucesivos de CPs
+        for (uint256 i = 1; i <= 10; i++) {
+            uint256 cp_prev = cp_evals[i - 1];
+            uint256 cp_neg_prev = cp_neg_evals[i - 1];
+            uint256 cp_current = cp_evals[i];
 
-        // Verificar que cp0(x) + cp0(-x) = cp1(x^2)
-        if ((cp0_x + cp0_neg_x) % PRIME != cp1_x2) {
-            return false;
+            // Verificar que cp(i) es correcto
+            if ((cp_prev + cp_neg_prev) % PRIME != cp_current) {
+                return false;
+            }
+
+            // Verificar que la evaluación de x en cp(i) es acorde al root del árbol de Merkle de cp(i)
+            if (!verifyMerklePath(bytes32(cp_current), cp_paths[i], cpRoots[i])) {
+                return false;
+            }
+
+            // Verificar que la evaluación de -x en cp(i) es acorde al root del árbol de Merkle de cp(i)
+            if (!verifyMerklePath(bytes32(cp_neg_evals[i]), cp_neg_paths[i], cpRoots[i])) {
+                return false;
+            }
         }
 
         return true;
