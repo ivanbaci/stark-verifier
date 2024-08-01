@@ -7,11 +7,6 @@ contract StarkVerifier {
     uint256 constant GENERATOR = 3;
     uint256 constant NUM_POINTS = 4;
 
-    // Coeficientes de la combinación lineal para cp0(x) (elegidos arbitrariamente, se podrían elegir otros o recibir del prover)
-    uint256 constant ALPHA_0 = 1;
-    uint256 constant ALPHA_1 = 2;
-    uint256 constant ALPHA_2 = 3;
-
     bytes32 public merkleRoot;
     bytes32[] public cpRoots;
     uint256[] public selectedPoints;
@@ -81,12 +76,14 @@ contract StarkVerifier {
         uint256[] memory cp_evals, // Evaluaciones de cp0(x), cp1(x^2), ..., cp10(x^1024)
         uint256[] memory cp_neg_evals, // Evaluaciones de cp0(-x), cp1(-x^2), ..., cp10(-x^1024)
         bytes32[][] memory cp_paths, // Caminos de Merkle para cada cp eval
-        bytes32[][] memory cp_neg_paths // Caminos de Merkle para cada cp neg eval
+        bytes32[][] memory cp_neg_paths, // Caminos de Merkle para cada cp neg eval
+        uint256[] memory alphas // Coeficientes de la combinación lineal para cp0(x)
     ) public view returns (bool) {
         require(cp_evals.length == 11, "Debe proporcionar 11 evaluaciones de cp(x)");
         require(cp_neg_evals.length == 11, "Debe proporcionar 11 evaluaciones de cp(-x)");
         require(cp_paths.length == 11, "Debe proporcionar 11 caminos de Merkle para cp(x)");
         require(cp_neg_paths.length == 11, "Debe proporcionar 11 caminos de Merkle para cp(-x)");
+        require(alphas.length == 3, "Debe proporcionar 3 coeficientes alfa");
 
         // Verificar que x y -x están dentro de los puntos seleccionados
         if (!isSelectedPoint(x) || !isSelectedPoint(PRIME - x)) {
@@ -104,8 +101,8 @@ contract StarkVerifier {
             return false;
         }
 
-        // Calcular cp0(x) como una combinación lineal de f(x), f(gx) y f(g^2x)
-        uint256 computed_cp0_x = (ALPHA_0 * f_x + ALPHA_1 * f_gx + ALPHA_2 * f_g2x) % PRIME;
+        // Calcular cp0(x) como una combinación lineal de f(x), f(gx) y f(g^2x) usando los coeficientes alfa proporcionados
+        uint256 computed_cp0_x = (alphas[0] * f_x + alphas[1] * f_gx + alphas[2] * f_g2x) % PRIME;
 
         // Verificar que el cp0(x) calculado corresponde al cp0(x) proporcionado por el prover
         if (computed_cp0_x != cp_evals[0]) {
